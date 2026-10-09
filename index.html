@@ -892,7 +892,7 @@
 
                             <div id="licenseRemoveContainer" style="display: none; margin-top: 16px; padding: 12px; background-color: var(--badge-bg); border-radius: 8px;">
                                 <p style="font-size: 0.9rem; margin-bottom: 8px;">Je hebt een geldige licentie!</p>
-                                <button class="mk-modal-btn danger" onclick="removeLicense()" style="width: 100%;">Licentie verwijderen</button>
+                                <button class="mk-modal-btn danger" onclick="removeLicense()" style="width: 100%;">Licentie ontkoppelen</button>
                             </div>
                         </div>
 
@@ -924,7 +924,7 @@
 
     <script>
         // ==================== CONFIGURATIE ====================
-        const WORKER_API_URL = "https://makertronic-api.boris05784.workers.dev";
+        const WORKER_API_URL = "https://makertronic-api.boris05784.workers.dev/";
         const DAILY_CREDIT_LIMIT = 10;
         
         const SYSTEM_PROMPT = {
@@ -1210,6 +1210,14 @@
             }
         }
 
+        function saveCreditBalance(day) {
+            localStorage.setItem('mk_user_credits', String(userCredits));
+            localStorage.setItem('mk_last_credit_date', day);
+            if (userLicense.active) {
+                localStorage.setItem('mk_license', JSON.stringify(userLicense));
+            }
+        }
+
         async function refreshCreditBalance() {
             try {
                 const response = await fetch(`${WORKER_API_URL}/api/credits`, {
@@ -1221,6 +1229,17 @@
                     })
                 });
                 const result = await response.json();
+                if (response.status === 409 && result.error === 'license_in_use') {
+                    userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
+                    localStorage.removeItem('mk_license');
+                    document.getElementById('licenseKeyInput').value = '';
+                    userCredits = DAILY_CREDIT_LIMIT;
+                    localStorage.setItem('mk_user_credits', String(userCredits));
+                    updateCreditDisplay();
+                    updateLicenseDisplay();
+                    showLicenseMessageModal('Licentie niet meer gekoppeld', 'Deze licentie is niet meer aan deze browser gekoppeld. Voer een andere licentie in of koppel hem opnieuw als hij is vrijgegeven.');
+                    return;
+                }
                 if (!response.ok || result.valid !== true) {
                     throw new Error(result.error || `HTTP ${response.status}`);
                 }
@@ -1229,6 +1248,7 @@
                 if (userLicense.active) {
                     userLicense.credits = result.creditsPerDay;
                 }
+                saveCreditBalance(result.day);
                 updateCreditDisplay();
                 updateLicenseDisplay();
             } catch (error) {
@@ -1301,6 +1321,7 @@
 
                 if (response.status === 429) {
                     userCredits = data.creditsRemaining ?? 0;
+                    saveCreditBalance(data.day);
                     updateCreditDisplay();
                     updateLicenseDisplay();
                     container.innerHTML += `<div class="message bot limit-warning">${renderMarkdown("⚠️ Je dagelijkse credits zijn op. Probeer het morgen opnieuw.")}</div>`;
@@ -1309,6 +1330,7 @@
                     if (Number.isSafeInteger(data.creditsPerDay) && userLicense.active) {
                         userLicense.credits = data.creditsPerDay;
                     }
+                    saveCreditBalance(data.day);
                     updateCreditDisplay();
                     updateLicenseDisplay();
                     const reply = data.candidates[0].content.parts[0].text;
@@ -1444,11 +1466,25 @@
         }
 
         function loadLicenseStatus() {
-            localStorage.removeItem('mk_license');
-            localStorage.removeItem('mk_user_credits');
-            localStorage.removeItem('mk_last_credit_date');
-            userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
-            userCredits = DAILY_CREDIT_LIMIT;
+            try {
+                const savedLicense = JSON.parse(localStorage.getItem('mk_license') || 'null');
+                if (savedLicense && savedLicense.active === true &&
+                    typeof savedLicense.key === 'string' && savedLicense.key.length > 0 &&
+                    Number.isSafeInteger(savedLicense.credits)) {
+                    userLicense = savedLicense;
+                } else {
+                    userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
+                }
+            } catch (error) {
+                console.error('Opgeslagen licentie kon niet worden gelezen:', error);
+                userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
+                localStorage.removeItem('mk_license');
+            }
+
+            const savedCredits = Number.parseInt(localStorage.getItem('mk_user_credits'), 10);
+            userCredits = Number.isSafeInteger(savedCredits) && savedCredits >= 0
+                ? savedCredits
+                : (userLicense.active ? userLicense.credits : DAILY_CREDIT_LIMIT);
             updateLicenseDisplay();
             updateCreditDisplay();
         }
@@ -1522,6 +1558,7 @@
                     userLicense.key = licenseKey;
                     userLicense.credits = result.creditsPerDay;
                     userCredits = result.creditsRemaining;
+                    saveCreditBalance(result.day);
                     
                     setTimeout(() => {
                         progressContainer.classList.remove('active');
@@ -1555,15 +1592,33 @@
         }
 
         function removeLicense() {
-            showLicenseMessageModal('Licentie van deze browser verwijderen?', 'De licentie wordt alleen uit deze browsersessie verwijderd. De licentie blijft aan deze browser gekoppeld en kan niet op een ander apparaat worden geactiveerd.', () => {
-                userLicense.active = false;
-                userLicense.key = '';
-                userLicense.credits = DAILY_CREDIT_LIMIT;
-                userCredits = DAILY_CREDIT_LIMIT;
-                
-                updateLicenseDisplay();
-                updateCreditDisplay();
-                showLicenseMessageModal('Licentie verwijderd', 'Je hebt weer 10 credits per dag.');
+            showLicenseMessageModal('Licentie ontkoppelen?', 'De licentie wordt van deze browser losgekoppeld en kan daarna op een ander apparaat worden geactiveerd. De resterende licentiecredits blijven voor vandaag behouden.', async () => {
+                try {
+                    const response = await fetch(`${WORKER_API_URL}/api/licenses/release`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            licenseKey: userLicense.key,
+                            clientId: getClientId()
+                        })
+                    });
+                    const result = await response.json();
+                    if (!response.ok || result.released !== true) {
+                        throw new Error(result.error || `HTTP ${response.status}`);
+                    }
+
+                    userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
+                    localStorage.removeItem('mk_license');
+                    document.getElementById('licenseKeyInput').value = '';
+                    userCredits = DAILY_CREDIT_LIMIT;
+                    localStorage.setItem('mk_user_credits', String(userCredits));
+                    updateLicenseDisplay();
+                    await refreshCreditBalance();
+                    showLicenseMessageModal('Licentie ontkoppeld', 'De licentie kan nu op een ander apparaat worden geactiveerd. Het resterende licentietegoed is niet gewist.');
+                } catch (error) {
+                    console.error('Licentie ontkoppelen is mislukt:', error);
+                    showLicenseMessageModal('Ontkoppelen mislukt', 'De licentie kon niet worden ontkoppeld. Controleer je verbinding en probeer het opnieuw.');
+                }
             });
         }
     </script>
