@@ -1,0 +1,1572 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Makertronic AI - Chatbot Assistent</title>
+    
+    <!-- Google Font: Tektur -->
+    <link href="https://fonts.googleapis.com/css2?family=Tektur:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Marked.js bibliotheek voor Markdown -->
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Tektur', sans-serif;
+            transition: background-color 0.3s ease, color 0.3s ease;
+            overflow: hidden;
+            height: 100vh;
+        }
+
+        /* Light Theme */
+        body.light-theme {
+            background-color: #f5f7fa;
+            color: #0f172a;
+        }
+
+        /* Dark Theme */
+        body.dark-theme {
+            background-color: #0f172a;
+            color: #e2e8f0;
+        }
+
+        /* Container Styling */
+        .makertronic-page-container {
+            width: 100%;
+            height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .makertronic-header {
+            background-color: var(--header-bg);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 24px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+        .header-title {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .header-title h1 {
+            font-size: 1.5rem;
+            font-weight: 700;
+        }
+
+        .header-title .version {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            padding: 2px 8px;
+            background-color: var(--badge-bg);
+            border-radius: 4px;
+        }
+
+        .header-controls {
+            display: flex;
+            gap: 12px;
+            align-items: center;
+        }
+
+        .header-btn {
+            width: 40px;
+            height: 40px;
+            border: none;
+            border-radius: 8px;
+            background-color: var(--button-bg);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .header-btn:hover {
+            background-color: var(--button-hover-bg);
+            transform: scale(1.05);
+        }
+
+        .makertronic-content {
+            flex: 1;
+            display: flex;
+            overflow: hidden;
+        }
+
+        /* Hoofdcontainer: Flexbox voor zijbalk en hoofdchat */
+        .makertronic-chatbox-wrapper {
+            position: relative;
+            width: 100%;
+            height: 100%;
+            background-color: var(--wrapper-bg);
+            color: var(--text-color);
+            overflow: hidden;
+            display: flex;
+            flex-direction: row;
+        }
+
+        /* Zijbalk Styling */
+        .chat-sidebar {
+            width: 250px;
+            background-color: var(--sidebar-bg);
+            border-right: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            animation: slideInLeft 0.3s ease;
+        }
+
+        @keyframes slideInLeft {
+            from {
+                transform: translateX(-250px);
+                opacity: 0;
+            }
+            to {
+                transform: translateX(0);
+                opacity: 1;
+            }
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 10px;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            background-color: var(--primary-color);
+            color: white;
+            border: 1px solid transparent;
+            padding: 10px;
+            border-radius: 8px;
+            font-family: 'Tektur', sans-serif;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .new-chat-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+        }
+
+        /* Credit Badge Widget */
+        .credits-badge {
+            background-color: var(--badge-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 8px 12px;
+            font-size: 0.82rem;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-weight: 500;
+            animation: fadeIn 0.3s ease;
+        }
+
+        .credits-badge .count {
+            color: #ff6600;
+            font-weight: 700;
+        }
+
+        .chat-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .chat-item {
+            padding: 10px 12px;
+            background-color: transparent;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.9rem;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            transition: all 0.2s;
+            user-select: none;
+        }
+
+        .chat-item:hover {
+            background-color: var(--hover-bg);
+            transform: translateX(4px);
+        }
+
+        .chat-item.active {
+            background-color: #ff6600;
+            color: white;
+            font-weight: 600;
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+        }
+
+        /* Rechtermuisknop Context Menu */
+        .chat-context-menu {
+            position: absolute;
+            background-color: var(--menu-bg);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.15);
+            padding: 6px 0;
+            z-index: 1000;
+            min-width: 150px;
+            display: none;
+            animation: fadeIn 0.15s ease;
+        }
+
+        .context-menu-item {
+            padding: 8px 14px;
+            font-size: 0.88rem;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: var(--text-color);
+            transition: background-color 0.15s;
+        }
+
+        .context-menu-item:hover {
+            background-color: var(--hover-bg);
+        }
+
+        .context-menu-item.delete {
+            color: #dc2626;
+        }
+
+        .context-menu-item.delete:hover {
+            background-color: rgba(220, 38, 38, 0.1);
+        }
+
+        /* Modals / UI Dialogs */
+        .mk-modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(15, 23, 42, 0.5);
+            backdrop-filter: blur(4px);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            z-index: 2000;
+            animation: fadeIn 0.2s ease;
+        }
+
+        #mkLicenseMessageModal {
+            z-index: 2100;
+        }
+
+        .mk-modal {
+            background-color: var(--modal-bg);
+            border-radius: 12px;
+            padding: 22px;
+            width: 90%;
+            max-width: 500px;
+            box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+            border: 1px solid var(--border-color);
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            animation: slideInUp 0.3s ease;
+        }
+
+        @keyframes slideInUp {
+            from {
+                transform: translateY(20px);
+                opacity: 0;
+            }
+            to {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; }
+            to { opacity: 1; }
+        }
+
+        .mk-modal h4 {
+            margin: 0;
+            font-size: 1.1rem;
+            color: var(--text-color);
+        }
+
+        .mk-modal p {
+            margin: 0;
+            font-size: 0.9rem;
+            color: var(--text-secondary);
+            line-height: 1.4;
+        }
+
+        .mk-modal-form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .mk-modal-form-group label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .mk-modal input, .mk-modal textarea, .mk-modal select {
+            width: 100%;
+            box-sizing: border-box;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 10px 12px;
+            font-family: 'Tektur', sans-serif;
+            font-size: 0.9rem;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            transition: border-color 0.2s;
+        }
+
+        .mk-modal input:focus, .mk-modal textarea:focus, .mk-modal select:focus {
+            border-color: #ff6600;
+        }
+
+        .mk-modal textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+
+        .mk-modal-actions {
+            display: flex;
+            justify-content: flex-end;
+            gap: 8px;
+            margin-top: 6px;
+        }
+
+        .mk-modal-btn {
+            padding: 10px 16px;
+            border-radius: 6px;
+            font-family: 'Tektur', sans-serif;
+            font-size: 0.85rem;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border-color);
+            background-color: var(--button-bg);
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+
+        .mk-modal-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+
+        .mk-modal-btn.primary {
+            background-color: #ff6600;
+            color: white;
+            border: none;
+        }
+
+        .mk-modal-btn.primary:hover {
+            background-color: #e55c00;
+        }
+
+        .mk-modal-btn.danger {
+            background-color: #dc2626;
+            color: white;
+            border: none;
+        }
+
+        .mk-modal-btn.danger:hover {
+            background-color: #b91c1c;
+        }
+
+        /* Settings Modal Specific */
+        .settings-tabs {
+            display: flex;
+            gap: 8px;
+            border-bottom: 1px solid var(--border-color);
+            margin-bottom: 16px;
+        }
+
+        .settings-tab {
+            padding: 8px 12px;
+            background: transparent;
+            border: none;
+            cursor: pointer;
+            font-family: 'Tektur', sans-serif;
+            font-size: 0.85rem;
+            border-bottom: 2px solid transparent;
+            transition: all 0.2s;
+            color: var(--text-secondary);
+        }
+
+        .settings-tab.active {
+            border-bottom-color: #ff6600;
+            color: #ff6600;
+        }
+
+        .settings-tab-content {
+            display: none;
+        }
+
+        .settings-tab-content.active {
+            display: block;
+        }
+
+        .settings-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 12px;
+            background-color: var(--badge-bg);
+            border-radius: 6px;
+            margin-bottom: 8px;
+        }
+
+        .toggle-switch {
+            position: relative;
+            width: 50px;
+            height: 28px;
+            background-color: #cbd5e1;
+            border-radius: 14px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+        }
+
+        .toggle-switch.active {
+            background-color: #ff6600;
+        }
+
+        .toggle-switch::after {
+            content: '';
+            position: absolute;
+            width: 24px;
+            height: 24px;
+            background-color: white;
+            border-radius: 50%;
+            top: 2px;
+            left: 2px;
+            transition: left 0.3s;
+        }
+
+        .toggle-switch.active::after {
+            left: 24px;
+        }
+
+        /* License Progress Bar */
+        .license-progress-container {
+            display: none;
+            margin-top: 12px;
+            padding: 12px;
+            background-color: var(--badge-bg);
+            border-radius: 8px;
+        }
+
+        .license-progress-container.active {
+            display: block;
+            animation: slideInUp 0.3s ease;
+        }
+
+        .progress-bar {
+            width: 100%;
+            height: 6px;
+            background-color: var(--border-color);
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .progress-fill {
+            height: 100%;
+            background: linear-gradient(90deg, #ff6600, #e55c00);
+            width: 0%;
+            transition: width 0.3s ease;
+        }
+
+        .progress-text {
+            font-size: 0.75rem;
+            text-align: center;
+            color: var(--text-secondary);
+        }
+
+        /* Rechterkant: Huidige Chatgebied */
+        .makertronic-chatbox {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: var(--wrapper-bg);
+        }
+
+        .makertronic-chatbox .chat-header {
+            background-color: var(--sidebar-bg);
+            padding: 16px 20px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .makertronic-chatbox .chat-header h3 {
+            font-size: 1.15rem;
+            font-weight: 700;
+            margin: 0;
+        }
+
+        .makertronic-chatbox .status-dot {
+            width: 12px;
+            height: 12px;
+            background-color: #22c55e;
+            border-radius: 50%;
+            box-shadow: 0 0 6px rgba(34, 197, 94, 0.5);
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+
+        .makertronic-chatbox .chat-messages {
+            flex: 1;
+            padding: 18px;
+            overflow-y: auto;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+        }
+
+        .makertronic-chatbox .message {
+            max-width: 85%;
+            padding: 14px 18px;
+            border-radius: 12px;
+            font-size: 0.98rem;
+            line-height: 1.55;
+            word-wrap: break-word;
+            animation: messageSlideIn 0.3s ease;
+        }
+
+        @keyframes messageSlideIn {
+            from {
+                opacity: 0;
+                transform: translateY(10px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        .makertronic-chatbox .message.bot {
+            background-color: var(--message-bot-bg);
+            align-self: flex-start;
+            border-left: 4px solid #ff6600;
+            box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+            color: var(--text-color);
+        }
+
+        .makertronic-chatbox .message.user {
+            background-color: #ff6600;
+            color: white;
+            align-self: flex-end;
+        }
+
+        .makertronic-chatbox .message.bot.limit-warning {
+            border-left: 4px solid #dc2626;
+            background-color: rgba(220, 38, 38, 0.1);
+        }
+
+        /* Markdown styling */
+        .makertronic-chatbox .message p { margin: 0 0 8px 0; }
+        .makertronic-chatbox .message p:last-child { margin-bottom: 0; }
+        .makertronic-chatbox .message strong { font-weight: 700; }
+        .makertronic-chatbox .message.user strong { color: white; }
+        .makertronic-chatbox .message ol, .makertronic-chatbox .message ul { margin: 6px 0 6px 22px; padding-left: 0; }
+        .makertronic-chatbox .message li { margin-bottom: 4px; }
+        .makertronic-chatbox .message a { color: #ff6600; text-decoration: none; }
+        .makertronic-chatbox .message a:hover { text-decoration: underline; }
+        .makertronic-chatbox .message code {
+            background-color: var(--code-bg);
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+        }
+
+        .makertronic-chatbox .chat-input-area {
+            padding: 14px 16px;
+            background-color: var(--sidebar-bg);
+            border-top: 1px solid var(--border-color);
+            display: flex;
+            gap: 10px;
+        }
+
+        .makertronic-chatbox input {
+            flex: 1;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            padding: 12px 14px;
+            font-family: 'Tektur', sans-serif;
+            font-size: 0.95rem;
+            outline: none;
+            background-color: var(--input-bg);
+            color: var(--text-color);
+            transition: all 0.2s;
+        }
+
+        .makertronic-chatbox input:focus {
+            border-color: #ff6600;
+            box-shadow: 0 0 0 3px rgba(255, 102, 0, 0.1);
+        }
+
+        .makertronic-chatbox button.send-btn {
+            background-color: #ff6600;
+            color: white;
+            border: none;
+            padding: 0 20px;
+            border-radius: 8px;
+            font-family: 'Tektur', sans-serif;
+            font-weight: 600;
+            font-size: 0.95rem;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .makertronic-chatbox button.send-btn:hover {
+            background-color: #e55c00;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(255, 102, 0, 0.3);
+        }
+
+        .makertronic-chatbox button.send-btn:disabled {
+            background-color: #cbd5e1;
+            cursor: not-allowed;
+            opacity: 0.6;
+            transform: none;
+        }
+
+        /* Scrollbar styling */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(0, 0, 0, 0.2);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(0, 0, 0, 0.3);
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .dark-theme ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        /* CSS Variables voor Themes */
+        .light-theme {
+            --header-bg: #ffffff;
+            --wrapper-bg: #e8ecf2;
+            --sidebar-bg: #dce2eb;
+            --badge-bg: #f1f5f9;
+            --button-bg: #f1f5f9;
+            --button-hover-bg: #e2e8f0;
+            --menu-bg: #ffffff;
+            --modal-bg: #ffffff;
+            --input-bg: #ffffff;
+            --message-bot-bg: #ffffff;
+            --text-color: #0f172a;
+            --text-secondary: #475569;
+            --border-color: #cbd5e1;
+            --code-bg: #f1f5f9;
+            --hover-bg: #cbd5e1;
+        }
+
+        .dark-theme {
+            --header-bg: #1e293b;
+            --wrapper-bg: #0f172a;
+            --sidebar-bg: #1e293b;
+            --badge-bg: #334155;
+            --button-bg: #334155;
+            --button-hover-bg: #475569;
+            --menu-bg: #1e293b;
+            --modal-bg: #1e293b;
+            --input-bg: #0f172a;
+            --message-bot-bg: #1e293b;
+            --text-color: #e2e8f0;
+            --text-secondary: #94a3b8;
+            --border-color: #334155;
+            --code-bg: #0f172a;
+            --hover-bg: #334155;
+        }
+
+        @media (max-width: 768px) {
+            .chat-sidebar { width: 60px; }
+            .chat-item { font-size: 0; padding: 10px 5px; text-align: center; }
+            .chat-item::after { content: "💬"; font-size: 1rem; }
+            .new-chat-btn span { display: none; }
+            .credits-badge { font-size: 0.65rem; padding: 6px; }
+            .header-title h1 { font-size: 1.2rem; }
+        }
+    </style>
+</head>
+<body class="light-theme">
+
+    <div class="makertronic-page-container">
+        <!-- Header -->
+        <div class="makertronic-header">
+            <div class="header-title">
+                <h1>🤖 Makertronic AI</h1>
+                <span class="version">v1.0 by Boris</span>
+            </div>
+            <div class="header-controls">
+                <button class="header-btn" id="themeToggleBtn" title="Toggle Theme">🌙</button>
+                <button class="header-btn" id="settingsBtn" title="Instellingen">⚙️</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="makertronic-content">
+            <div class="makertronic-chatbox-wrapper">
+                <!-- Sidebar -->
+                <div class="chat-sidebar">
+                    <div class="sidebar-header">
+                        <button class="new-chat-btn" onclick="createNewChat()">
+                            <span>+ Nieuwe Chat</span>
+                        </button>
+                        <div class="credits-badge">
+                            <label>Credits:</label>
+                            <span class="count" id="mkCreditDisplay">10 / 10</span>
+                        </div>
+                    </div>
+                    <div class="chat-list" id="mkChatList">
+                        <!-- Dynamische lijst met chats -->
+                    </div>
+                </div>
+
+                <!-- Context Menu -->
+                <div id="mkContextMenu" class="chat-context-menu">
+                    <div class="context-menu-item" onclick="renameCurrentContextChat()">✏️ Naam wijzigen</div>
+                    <div class="context-menu-item delete" onclick="deleteCurrentContextChat()">🗑️ Wissen</div>
+                </div>
+
+                <!-- MODALS -->
+
+                <!-- Modal: Naam Wijzigen -->
+                <div id="mkRenameModal" class="mk-modal-overlay">
+                    <div class="mk-modal">
+                        <h4>✏️ Chatnaam Wijzigen</h4>
+                        <input type="text" id="mkRenameInput" placeholder="Voer een nieuwe naam in..." onkeydown="if(event.key==='Enter') confirmRename()">
+                        <div class="mk-modal-actions">
+                            <button class="mk-modal-btn" onclick="closeRenameModal()">Annuleren</button>
+                            <button class="mk-modal-btn primary" onclick="confirmRename()">Opslaan</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Modal: Chat Verwijderen -->
+                <div id="mkDeleteModal" class="mk-modal-overlay">
+                    <div class="mk-modal">
+                        <h4>🗑️ Chat Verwijderen</h4>
+                        <p id="mkDeleteMessage">Weet je zeker dat je deze chat wilt verwijderen?</p>
+                        <div class="mk-modal-actions">
+                            <button class="mk-modal-btn" onclick="closeDeleteModal()">Annuleren</button>
+                            <button class="mk-modal-btn danger" onclick="confirmDelete()">Verwijderen</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="mkLicenseMessageModal" class="mk-modal-overlay">
+                    <div class="mk-modal">
+                        <h4 id="mkLicenseMessageTitle">Licentie</h4>
+                        <p id="mkLicenseMessageText"></p>
+                        <div class="mk-modal-actions" id="mkLicenseMessageActions"></div>
+                    </div>
+                </div>
+
+                <!-- Modal: Instellingen -->
+                <div id="mkSettingsModal" class="mk-modal-overlay">
+                    <div class="mk-modal" style="max-width: 600px; max-height: 80vh; overflow-y: auto;">
+                        <h4>⚙️ Instellingen</h4>
+                        
+                        <div class="settings-tabs">
+                            <button class="settings-tab active" onclick="switchSettingsTab('general')">Algemeen</button>
+                            <button class="settings-tab" onclick="switchSettingsTab('profile')">Profiel</button>
+                            <button class="settings-tab" onclick="switchSettingsTab('license')">Licentie</button>
+                        </div>
+
+                        <!-- Tab: Algemeen -->
+                        <div id="tab-general" class="settings-tab-content active">
+                            <div class="settings-item">
+                                <label>Donker thema</label>
+                                <div class="toggle-switch" id="darkThemeToggle" onclick="toggleDarkTheme()"></div>
+                            </div>
+                            <div class="settings-item">
+                                <label>Geluidseffecten</label>
+                                <div class="toggle-switch" id="soundToggle" onclick="toggleSound()"></div>
+                            </div>
+                            <div class="settings-item">
+                                <label>Animaties</label>
+                                <div class="toggle-switch active" id="animationToggle" onclick="toggleAnimations()"></div>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Profiel -->
+                        <div id="tab-profile" class="settings-tab-content">
+                            <div class="mk-modal-form-group">
+                                <label>Volledige Naam</label>
+                                <input type="text" id="userNameInput" placeholder="Voer je naam in...">
+                            </div>
+                            <div class="mk-modal-form-group">
+                                <label>Leeftijd</label>
+                                <input type="number" id="userAgeInput" placeholder="Voer je leeftijd in..." min="0" max="150">
+                            </div>
+                            <div class="mk-modal-form-group">
+                                <label>Ervaring</label>
+                                <select id="userLevelInput">
+                                    <option value="">Selecteer je ervaring...</option>
+                                    <option value="beginner">Beginner</option>
+                                    <option value="intermediate">Gevorderd</option>
+                                    <option value="expert">Expert</option>
+                                </select>
+                            </div>
+                            <div class="mk-modal-form-group">
+                                <label>Interesses</label>
+                                <textarea id="userInterestsInput" placeholder="Bijv: Arduino, Raspberry Pi, Sensoren..."></textarea>
+                            </div>
+                            <div class="mk-modal-form-group">
+                                <label>Aanvullende Info</label>
+                                <textarea id="userBioInput" placeholder="Vertel meer over jezelf..."></textarea>
+                            </div>
+                        </div>
+
+                        <!-- Tab: Licentie -->
+                        <div id="tab-license" class="settings-tab-content">
+                            <div id="licenseStatusContainer" style="margin-bottom: 16px;">
+                                <p id="licenseStatus" style="font-size: 0.9rem; margin-bottom: 8px;">Status: <strong id="licenseStatusText">Geen licentie</strong></p>
+                                <p id="licenseCreditsInfo" style="font-size: 0.85rem; color: var(--text-secondary);"></p>
+                            </div>
+
+                            <div id="licenseInputContainer">
+                                <div class="mk-modal-form-group">
+                                    <label>Licentie sleutel</label>
+                                    <input type="text" id="licenseKeyInput" placeholder="Plak je licentie sleutel hier...">
+                                </div>
+                                <button class="mk-modal-btn primary" id="licenseValidateBtn" onclick="validateLicense()" style="width: 100%; margin-top: 8px;">➜ Controleren</button>
+                            </div>
+
+                            <div id="licenseProgressContainer" class="license-progress-container">
+                                <p id="licenseProgressMessage" style="font-size: 0.85rem; margin-bottom: 8px;">Verbinding maken met de licentieserver...</p>
+                                <div class="progress-bar">
+                                    <div class="progress-fill" id="licenseProgressFill"></div>
+                                </div>
+                                <p class="progress-text" id="licenseProgressText">Starten...</p>
+                            </div>
+
+                            <div id="licenseRemoveContainer" style="display: none; margin-top: 16px; padding: 12px; background-color: var(--badge-bg); border-radius: 8px;">
+                                <p style="font-size: 0.9rem; margin-bottom: 8px;">Je hebt een geldige licentie!</p>
+                                <button class="mk-modal-btn danger" onclick="removeLicense()" style="width: 100%;">Licentie verwijderen</button>
+                            </div>
+                        </div>
+
+                        <div class="mk-modal-actions" style="margin-top: 16px;">
+                            <button class="mk-modal-btn primary" onclick="closeSettingsModal()">Sluiten</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Main Chat Area -->
+                <div class="makertronic-chatbox">
+                    <div class="chat-header">
+                        <span class="status-dot"></span>
+                        <h3>Makertronic AI Assistent</h3>
+                    </div>
+                    
+                    <div class="chat-messages" id="mkChatMessages">
+                        <!-- Berichten worden dynamisch ingeladen -->
+                    </div>
+                    
+                    <div class="chat-input-area">
+                        <input type="text" id="mkUserInput" placeholder="Stel een vraag..." onkeypress="handleMkKeyPress(event)">
+                        <button class="send-btn" onclick="sendMkMessage()" id="sendBtn">Verstuur</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ==================== CONFIGURATIE ====================
+        const WORKER_API_URL = "https://YOUR-WORKER-NAME.YOUR-SUBDOMAIN.workers.dev";
+        const DAILY_CREDIT_LIMIT = 10;
+        
+        const SYSTEM_PROMPT = {
+            role: "user",
+            parts: [{ text: "Je bent de Makertronic AI-assistent, ontwikkeld door Boris. Je helpt makers met micro-elektronica, Arduino's, Raspberry Pi's en sensoren. Geef duidelijke, vriendelijke en professionele uitleg in het Nederlands." }]
+        };
+
+        const SYSTEM_RESPONSE = {
+            role: "model",
+            parts: [{ text: "Hoi! 👋 Welkom bij Makertronic AI, ontwikkeld door Boris. Ik ben hier om je te helpen met sensoren, Arduino's, Raspberry Pi en al je elektronica-projecten. Wat kan ik voor je doen? 🚀" }]
+        };
+
+        // ==================== GLOBALE VARIABELEN ====================
+        let chats = [];
+        let currentChatId = null;
+        let contextChatId = null;
+        let userCredits = DAILY_CREDIT_LIMIT;
+        let userSettings = {
+            name: "",
+            age: "",
+            level: "",
+            interests: "",
+            bio: "",
+            darkTheme: false,
+            sound: false,
+            animations: true
+        };
+        let userLicense = {
+            active: false,
+            key: "",
+            credits: DAILY_CREDIT_LIMIT
+        };
+        let licenseModalConfirmAction = null;
+
+        // ==================== INITIALISATIE ====================
+        window.addEventListener('load', () => {
+            initSettings();
+            loadChats();
+            setupEventListeners();
+            refreshCreditBalance();
+        });
+
+        function setupEventListeners() {
+            document.getElementById('themeToggleBtn').addEventListener('click', toggleTheme);
+            document.getElementById('settingsBtn').addEventListener('click', openSettingsModal);
+            
+            document.addEventListener('click', (e) => {
+                if (!e.target.closest('#mkContextMenu')) {
+                    hideContextMenu();
+                }
+                if (!e.target.closest('.mk-modal-overlay') && e.target.classList.contains('mk-modal-overlay')) {
+                    closeAllModals();
+                }
+            });
+        }
+
+        // ==================== THEME MANAGEMENT ====================
+        function initSettings() {
+            const saved = localStorage.getItem('mk_settings');
+            if (saved) {
+                userSettings = JSON.parse(saved);
+            }
+            applyTheme();
+            loadUserProfile();
+            loadLicenseStatus();
+        }
+
+        function applyTheme() {
+            const body = document.body;
+            if (userSettings.darkTheme) {
+                body.classList.remove('light-theme');
+                body.classList.add('dark-theme');
+                document.getElementById('themeToggleBtn').innerText = '☀️';
+                document.getElementById('darkThemeToggle').classList.add('active');
+            } else {
+                body.classList.remove('dark-theme');
+                body.classList.add('light-theme');
+                document.getElementById('themeToggleBtn').innerText = '🌙';
+                document.getElementById('darkThemeToggle').classList.remove('active');
+            }
+        }
+
+        function toggleTheme() {
+            userSettings.darkTheme = !userSettings.darkTheme;
+            saveSettings();
+            applyTheme();
+        }
+
+        function toggleDarkTheme() {
+            toggleTheme();
+        }
+
+        function toggleSound() {
+            userSettings.sound = !userSettings.sound;
+            saveSettings();
+            const toggle = document.getElementById('soundToggle');
+            toggle.classList.toggle('active');
+        }
+
+        function toggleAnimations() {
+            userSettings.animations = !userSettings.animations;
+            saveSettings();
+            const toggle = document.getElementById('animationToggle');
+            toggle.classList.toggle('active');
+        }
+
+        function saveSettings() {
+            localStorage.setItem('mk_settings', JSON.stringify(userSettings));
+        }
+
+        // ==================== CHAT MANAGEMENT ====================
+        function loadChats() {
+            const saved = localStorage.getItem('mk_chats');
+            if (saved) {
+                chats = JSON.parse(saved);
+            }
+
+            if (chats.length === 0) {
+                createNewChat();
+            } else {
+                currentChatId = localStorage.getItem('mk_current_chat_id') || chats[chats.length - 1].id;
+                updateUI();
+            }
+        }
+
+        function createNewChat() {
+            const newChat = {
+                id: 'chat_' + Date.now(),
+                title: "Nieuwe Chat",
+                createdAt: new Date().toLocaleString('nl-NL'),
+                history: [SYSTEM_PROMPT, SYSTEM_RESPONSE]
+            };
+            chats.push(newChat);
+            currentChatId = newChat.id;
+            saveChats();
+            updateUI();
+        }
+
+        function switchChat(id) {
+            currentChatId = id;
+            saveChats();
+            updateUI();
+        }
+
+        function saveChats() {
+            localStorage.setItem('mk_chats', JSON.stringify(chats));
+            localStorage.setItem('mk_current_chat_id', currentChatId);
+        }
+
+        function updateUI() {
+            renderChatList();
+            renderCurrentChat();
+            updateCreditDisplay();
+        }
+
+        function renderChatList() {
+            const listContainer = document.getElementById('mkChatList');
+            listContainer.innerHTML = '';
+
+            [...chats].reverse().forEach(chat => {
+                const div = document.createElement('div');
+                div.className = `chat-item ${chat.id === currentChatId ? 'active' : ''}`;
+                div.innerText = chat.title;
+                div.onclick = () => switchChat(chat.id);
+                div.oncontextmenu = (e) => {
+                    e.preventDefault();
+                    showContextMenu(e, chat.id);
+                };
+
+                listContainer.appendChild(div);
+            });
+        }
+
+        function showContextMenu(e, chatId) {
+            contextChatId = chatId;
+            const menu = document.getElementById('mkContextMenu');
+            const wrapper = document.querySelector('.makertronic-chatbox-wrapper');
+            const rect = wrapper.getBoundingClientRect();
+
+            menu.style.left = (e.clientX - rect.left) + 'px';
+            menu.style.top = (e.clientY - rect.top) + 'px';
+            menu.style.display = 'block';
+        }
+
+        function hideContextMenu() {
+            const menu = document.getElementById('mkContextMenu');
+            if (menu) menu.style.display = 'none';
+        }
+
+        function renameCurrentContextChat() {
+            hideContextMenu();
+            if (!contextChatId) return;
+            const chat = chats.find(c => c.id === contextChatId);
+            if (!chat) return;
+
+            const input = document.getElementById('mkRenameInput');
+            input.value = chat.title;
+            document.getElementById('mkRenameModal').style.display = 'flex';
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function closeRenameModal() {
+            document.getElementById('mkRenameModal').style.display = 'none';
+        }
+
+        function confirmRename() {
+            const input = document.getElementById('mkRenameInput');
+            const newTitle = input.value.trim();
+
+            if (newTitle !== "" && contextChatId) {
+                const chat = chats.find(c => c.id === contextChatId);
+                if (chat) {
+                    chat.title = newTitle;
+                    saveChats();
+                    renderChatList();
+                }
+            }
+            closeRenameModal();
+        }
+
+        function deleteCurrentContextChat() {
+            hideContextMenu();
+            if (!contextChatId) return;
+            const chat = chats.find(c => c.id === contextChatId);
+            if (!chat) return;
+
+            const msg = document.getElementById('mkDeleteMessage');
+            msg.innerText = `Weet je zeker dat je "${chat.title}" wilt verwijderen?`;
+            document.getElementById('mkDeleteModal').style.display = 'flex';
+        }
+
+        function closeDeleteModal() {
+            document.getElementById('mkDeleteModal').style.display = 'none';
+        }
+
+        function confirmDelete() {
+            if (!contextChatId) return;
+
+            chats = chats.filter(c => c.id !== contextChatId);
+
+            if (chats.length === 0) {
+                createNewChat();
+            } else if (currentChatId === contextChatId) {
+                currentChatId = chats[chats.length - 1].id;
+                saveChats();
+                updateUI();
+            } else {
+                saveChats();
+                renderChatList();
+            }
+            closeDeleteModal();
+        }
+
+        function renderCurrentChat() {
+            const container = document.getElementById('mkChatMessages');
+            container.innerHTML = '';
+            const currentChat = chats.find(c => c.id === currentChatId);
+
+            if (!currentChat) return;
+
+            currentChat.history.forEach((msg, index) => {
+                if (index === 0) return;
+                const roleClass = msg.role === 'user' ? 'user' : 'bot';
+                container.innerHTML += `<div class="message ${roleClass}">${renderMarkdown(msg.parts[0].text)}</div>`;
+            });
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function renderMarkdown(text) {
+            if (typeof marked !== 'undefined') {
+                return marked.parse(text);
+            }
+            return text.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>').replace(/\n/g, '<br>');
+        }
+
+        // ==================== CREDITS MANAGEMENT ====================
+        function updateCreditDisplay() {
+            const display = document.getElementById('mkCreditDisplay');
+            const maxCredits = userLicense.active ? userLicense.credits : DAILY_CREDIT_LIMIT;
+            if (display) {
+                display.innerText = `${userCredits} / ${maxCredits}`;
+            }
+        }
+
+        async function refreshCreditBalance() {
+            try {
+                const response = await fetch(`${WORKER_API_URL}/api/credits`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        clientId: getClientId(),
+                        licenseKey: userLicense.active ? userLicense.key : ''
+                    })
+                });
+                const result = await response.json();
+                if (!response.ok || result.valid !== true) {
+                    throw new Error(result.error || `HTTP ${response.status}`);
+                }
+
+                userCredits = result.creditsRemaining;
+                if (userLicense.active) {
+                    userLicense.credits = result.creditsPerDay;
+                }
+                updateCreditDisplay();
+                updateLicenseDisplay();
+            } catch (error) {
+                console.error('Creditsaldo kon niet worden opgehaald:', error);
+            }
+        }
+
+        // ==================== MESSAGE HANDLING ====================
+        async function sendMkMessage() {
+            const input = document.getElementById('mkUserInput');
+            const text = input.value.trim();
+            if (!text) return;
+
+            const currentChat = chats.find(c => c.id === currentChatId);
+            const container = document.getElementById('mkChatMessages');
+
+            container.innerHTML += `<div class="message user">${renderMarkdown(text)}</div>`;
+            input.value = '';
+            container.scrollTop = container.scrollHeight;
+
+            if (currentChat.history.length === 2 && currentChat.title === "Nieuwe Chat") {
+                currentChat.title = text.substring(0, 30) + (text.length > 30 ? '...' : '');
+                renderChatList();
+            }
+
+            const userProfileContext = buildUserContext();
+            const historyWithContext = [
+                SYSTEM_PROMPT,
+                SYSTEM_RESPONSE,
+                ...currentChat.history.slice(2),
+                { role: "user", parts: [{ text: `${userProfileContext}\n\nVraag: ${text}` }] }
+            ];
+
+            currentChat.history.push({ role: "user", parts: [{ text: text }] });
+            saveChats();
+
+            const loadingId = "mk-loading-" + Date.now();
+            container.innerHTML += `<div class="message bot" id="${loadingId}"><p>Even nadenken... ⚡</p></div>`;
+            container.scrollTop = container.scrollHeight;
+
+            const serverBusyText = "⚠️ Even geduld... De server is druk. Probeer het over een paar seconden opnieuw!";
+
+            try {
+                let response = await fetch(`${WORKER_API_URL}/api/chat`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        contents: historyWithContext,
+                        clientId: getClientId(),
+                        licenseKey: userLicense.active ? userLicense.key : ''
+                    })
+                });
+
+                if (response.status === 503) {
+                    await new Promise(resolve => setTimeout(resolve, 1500));
+                    response = await fetch(`${WORKER_API_URL}/api/chat`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({
+                            contents: historyWithContext,
+                            clientId: getClientId(),
+                            licenseKey: userLicense.active ? userLicense.key : ''
+                        })
+                    });
+                }
+
+                const data = await response.json();
+                const loadingElement = document.getElementById(loadingId);
+                if (loadingElement) loadingElement.remove();
+
+                if (response.status === 429) {
+                    userCredits = data.creditsRemaining ?? 0;
+                    updateCreditDisplay();
+                    updateLicenseDisplay();
+                    container.innerHTML += `<div class="message bot limit-warning">${renderMarkdown("⚠️ Je dagelijkse credits zijn op. Probeer het morgen opnieuw.")}</div>`;
+                } else if (response.ok && data.candidates && data.candidates[0].content) {
+                    userCredits = data.creditsRemaining;
+                    if (Number.isSafeInteger(data.creditsPerDay) && userLicense.active) {
+                        userLicense.credits = data.creditsPerDay;
+                    }
+                    updateCreditDisplay();
+                    updateLicenseDisplay();
+                    const reply = data.candidates[0].content.parts[0].text;
+                    container.innerHTML += `<div class="message bot">${renderMarkdown(reply)}</div>`;
+                    currentChat.history.push({ role: "model", parts: [{ text: reply }] });
+                    saveChats();
+                } else if (response.status === 409 && data.error === 'license_in_use') {
+                    container.innerHTML += `<div class="message bot"><p>Deze licentie is al aan een andere browser gekoppeld. Koop een andere licentie om Makertronic AI te gebruiken.</p></div>`;
+                } else {
+                    const errorDetail = data.error ? ` (${data.error})` : '';
+                    container.innerHTML += `<div class="message bot"><p>${serverBusyText}${errorDetail}</p></div>`;
+                }
+            } catch (err) {
+                const loadingElement = document.getElementById(loadingId);
+                if (loadingElement) loadingElement.remove();
+                container.innerHTML += `<div class="message bot"><p>${serverBusyText}</p></div>`;
+            }
+
+            container.scrollTop = container.scrollHeight;
+        }
+
+        function getClientId() {
+            let clientId = localStorage.getItem('mk_client_id');
+            if (!clientId) {
+                clientId = crypto.randomUUID();
+                localStorage.setItem('mk_client_id', clientId);
+            }
+            return clientId;
+        }
+
+        function handleMkKeyPress(e) {
+            if (e.key === 'Enter') sendMkMessage();
+        }
+
+        function buildUserContext() {
+            if (!userSettings.name && !userSettings.level && !userSettings.interests) {
+                return "";
+            }
+
+            let context = "Gebruikersinfo: ";
+            if (userSettings.name) context += `Naam: ${userSettings.name}. `;
+            if (userSettings.age) context += `Leeftijd: ${userSettings.age}. `;
+            if (userSettings.level) context += `Ervaring: ${userSettings.level}. `;
+            if (userSettings.interests) context += `Interesses: ${userSettings.interests}. `;
+            if (userSettings.bio) context += `Extra info: ${userSettings.bio}. `;
+
+            return context;
+        }
+
+        // ==================== INSTELLINGEN ====================
+        function openSettingsModal() {
+            document.getElementById('mkSettingsModal').style.display = 'flex';
+            loadUserProfile();
+            loadLicenseStatus();
+        }
+
+        function closeSettingsModal() {
+            document.getElementById('mkSettingsModal').style.display = 'none';
+            saveUserProfile();
+        }
+
+        function switchSettingsTab(tabName) {
+            document.querySelectorAll('.settings-tab').forEach(tab => tab.classList.remove('active'));
+            document.querySelectorAll('.settings-tab-content').forEach(content => content.classList.remove('active'));
+
+            event.target.classList.add('active');
+            document.getElementById(`tab-${tabName}`).classList.add('active');
+        }
+
+        function loadUserProfile() {
+            document.getElementById('userNameInput').value = userSettings.name || '';
+            document.getElementById('userAgeInput').value = userSettings.age || '';
+            document.getElementById('userLevelInput').value = userSettings.level || '';
+            document.getElementById('userInterestsInput').value = userSettings.interests || '';
+            document.getElementById('userBioInput').value = userSettings.bio || '';
+        }
+
+        function saveUserProfile() {
+            userSettings.name = document.getElementById('userNameInput').value;
+            userSettings.age = document.getElementById('userAgeInput').value;
+            userSettings.level = document.getElementById('userLevelInput').value;
+            userSettings.interests = document.getElementById('userInterestsInput').value;
+            userSettings.bio = document.getElementById('userBioInput').value;
+            saveSettings();
+        }
+
+        function closeAllModals() {
+            document.getElementById('mkSettingsModal').style.display = 'none';
+            document.getElementById('mkRenameModal').style.display = 'none';
+            document.getElementById('mkDeleteModal').style.display = 'none';
+            closeLicenseMessageModal();
+        }
+
+        // ==================== LICENSE MANAGEMENT ====================
+        function showLicenseMessageModal(title, message, confirmAction = null) {
+            const modal = document.getElementById('mkLicenseMessageModal');
+            const actions = document.getElementById('mkLicenseMessageActions');
+            document.getElementById('mkLicenseMessageTitle').textContent = title;
+            document.getElementById('mkLicenseMessageText').textContent = message;
+            actions.replaceChildren();
+            licenseModalConfirmAction = confirmAction;
+
+            if (confirmAction) {
+                const cancelButton = document.createElement('button');
+                cancelButton.className = 'mk-modal-btn';
+                cancelButton.textContent = 'Annuleren';
+                cancelButton.onclick = closeLicenseMessageModal;
+
+                const confirmButton = document.createElement('button');
+                confirmButton.className = 'mk-modal-btn danger';
+                confirmButton.textContent = 'Verwijderen';
+                confirmButton.onclick = () => {
+                    const action = licenseModalConfirmAction;
+                    closeLicenseMessageModal();
+                    if (action) action();
+                };
+
+                actions.append(cancelButton, confirmButton);
+            } else {
+                const closeButton = document.createElement('button');
+                closeButton.className = 'mk-modal-btn primary';
+                closeButton.textContent = 'Sluiten';
+                closeButton.onclick = closeLicenseMessageModal;
+                actions.append(closeButton);
+            }
+
+            modal.style.display = 'flex';
+        }
+
+        function closeLicenseMessageModal() {
+            document.getElementById('mkLicenseMessageModal').style.display = 'none';
+            licenseModalConfirmAction = null;
+        }
+
+        function loadLicenseStatus() {
+            localStorage.removeItem('mk_license');
+            localStorage.removeItem('mk_user_credits');
+            localStorage.removeItem('mk_last_credit_date');
+            userLicense = { active: false, key: '', credits: DAILY_CREDIT_LIMIT };
+            userCredits = DAILY_CREDIT_LIMIT;
+            updateLicenseDisplay();
+            updateCreditDisplay();
+        }
+
+        function updateLicenseDisplay() {
+            const statusText = document.getElementById('licenseStatusText');
+            const creditsInfo = document.getElementById('licenseCreditsInfo');
+            const inputContainer = document.getElementById('licenseInputContainer');
+            const removeContainer = document.getElementById('licenseRemoveContainer');
+
+            if (userLicense.active) {
+                statusText.innerText = `Actief (${userCredits} / ${userLicense.credits} gedeelde credits vandaag)`;
+                statusText.style.color = '#22c55e';
+                creditsInfo.innerText = 'Deze licentie is aan deze browser gekoppeld en kan niet op een ander apparaat worden gebruikt.';
+                inputContainer.style.display = 'none';
+                removeContainer.style.display = 'block';
+            } else {
+                statusText.innerText = 'Geen licentie (10 credits/dag)';
+                statusText.style.color = '#ff6600';
+                creditsInfo.innerText = '';
+                inputContainer.style.display = 'block';
+                removeContainer.style.display = 'none';
+            }
+        }
+
+        async function validateLicense() {
+            const licenseKey = document.getElementById('licenseKeyInput').value.trim();
+
+            if (!licenseKey) {
+                showLicenseMessageModal('Licentiesleutel ontbreekt', 'Vul eerst een licentiesleutel in.');
+                return;
+            }
+
+            const progressContainer = document.getElementById('licenseProgressContainer');
+            const inputContainer = document.getElementById('licenseInputContainer');
+            const progressFill = document.getElementById('licenseProgressFill');
+            const progressText = document.getElementById('licenseProgressText');
+            const progressMessage = document.getElementById('licenseProgressMessage');
+            const validateButton = document.getElementById('licenseValidateBtn');
+
+            inputContainer.style.display = 'none';
+            progressContainer.classList.add('active');
+            progressFill.style.width = '0%';
+            progressMessage.innerText = 'Verbinding maken met de licentieserver...';
+            progressText.innerText = '0% Verbinden...';
+            validateButton.disabled = true;
+
+            let progress = 0;
+            let progressInterval;
+            try {
+                progressInterval = setInterval(() => {
+                    progress = Math.min(progress + Math.random() * 12, 90);
+                    progressFill.style.width = progress + '%';
+                    progressText.innerText = `${Math.floor(progress)}% Verbinden en controleren...`;
+                }, 350);
+
+                const response = await fetch(`${WORKER_API_URL}/api/licenses/validate`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ licenseKey, clientId: getClientId() })
+                });
+                const result = await response.json();
+
+                clearInterval(progressInterval);
+                progressInterval = null;
+                progressFill.style.width = '100%';
+                progressText.innerText = '100% Controle voltooid';
+
+                if (response.ok && result.valid === true) {
+                    userLicense.active = true;
+                    userLicense.key = licenseKey;
+                    userLicense.credits = result.creditsPerDay;
+                    userCredits = result.creditsRemaining;
+                    
+                    setTimeout(() => {
+                        progressContainer.classList.remove('active');
+                        updateLicenseDisplay();
+                        updateCreditDisplay();
+                        showLicenseMessageModal('Licentie geactiveerd', `Je licentie is actief. Er zijn nog ${userCredits} van de ${userLicense.credits} gedeelde credits over voor vandaag.`);
+                    }, 1000);
+                } else if (response.status === 404 || (response.ok && result.valid === false)) {
+                    progressContainer.classList.remove('active');
+                    inputContainer.style.display = 'block';
+                    showLicenseMessageModal('Licentiesleutel niet gevonden', 'Controleer de sleutel en probeer het opnieuw.');
+                } else if (response.status === 409 && result.error === 'license_in_use') {
+                    progressContainer.classList.remove('active');
+                    inputContainer.style.display = 'block';
+                    showLicenseMessageModal('Licentie al in gebruik', 'Deze licentie is al aan een andere browser gekoppeld. Koop een andere licentie om Makertronic AI te gebruiken.');
+                } else {
+                    progressContainer.classList.remove('active');
+                    inputContainer.style.display = 'block';
+                    showLicenseMessageModal('Controle mislukt', `De licentieserver gaf een fout (HTTP ${response.status}). Probeer het later opnieuw.`);
+                }
+            } catch (error) {
+                progressMessage.innerText = 'Verbinding mislukt';
+                progressText.innerText = 'Controle niet voltooid';
+                progressContainer.classList.remove('active');
+                inputContainer.style.display = 'block';
+                showLicenseMessageModal('Verbinding mislukt', 'De licenties konden niet worden opgehaald. Controleer je internetverbinding en probeer het opnieuw.');
+            } finally {
+                if (progressInterval) clearInterval(progressInterval);
+                validateButton.disabled = false;
+            }
+        }
+
+        function removeLicense() {
+            showLicenseMessageModal('Licentie van deze browser verwijderen?', 'De licentie wordt alleen uit deze browsersessie verwijderd. De licentie blijft aan deze browser gekoppeld en kan niet op een ander apparaat worden geactiveerd.', () => {
+                userLicense.active = false;
+                userLicense.key = '';
+                userLicense.credits = DAILY_CREDIT_LIMIT;
+                userCredits = DAILY_CREDIT_LIMIT;
+                
+                updateLicenseDisplay();
+                updateCreditDisplay();
+                showLicenseMessageModal('Licentie verwijderd', 'Je hebt weer 10 credits per dag.');
+            });
+        }
+    </script>
+
+</body>
+</html>
